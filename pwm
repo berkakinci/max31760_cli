@@ -1,11 +1,50 @@
 #!/bin/bash
 
-PWMV=`./get 0x51`
+### Functions
+function set_pwm () {
+    if [[ $# == 0 ]]; then
+	return
+    fi
 
-if [[ PWMV == '0xff' ]]; then
-    PWM="100.00"
-else
-    PWM=`bc <<< "scale=2; $(( PWMV )) / 256 * 100"`
-fi
+    PWM=$1
+    # Sanity checks
+    if ! [[ $PWM =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+	echo "PWM value not a number; ignored" 1>&2
+	return
+    fi
+    MILLIPWM=`bc <<< "scale=0; $PWM * 1000 / 1"`
+    if (( MILLIPWM > 100000
+          || MILLIPWM < 0 )); then
+	echo "PWM value out of range; ignored." 1>&2
+	return
+    fi
 
-echo -e "PWM:\t$PWM\t%"
+    PWMR=`bc <<< "scale=2; $PWM * 256 / 100"`
+    PWMR=`printf "%.0f" $PWMR` # Rounds here.
+    PWMR=`printf "0x%02x" $PWMR` # Hex here (for show).
+    if (( PWMR > 0xff )); then
+       PWMR=0xff
+    fi
+
+    ./set 0x50 $PWMR
+    return
+}
+
+
+function get_pwm () {
+    PWMV=`./get 0x51`
+
+    if (( PWMV == 0xff )); then
+	PWM="100.00"
+    else
+	PWM=`bc <<< "scale=2; $(( PWMV )) * 100 / 256"`
+    fi
+    echo -e "PWM:\t$PWM\t%"
+    return
+}
+
+### Main flow
+# Set value if requested
+set_pwm $1
+# Read current value
+get_pwm
