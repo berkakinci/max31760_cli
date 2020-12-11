@@ -48,14 +48,14 @@ for TEMP in `seq $TEMP_BASE $TEMP_STEP 20`; do
 done
 
 # Manually managing transition for now.
-./set 0x22 0x20 # 21degC
-./set 0x23 0x40 # 23degC
+./set 0x22 0xe0 # 21degC
+./set 0x23 0xc0 # 23degC
 ./set 0x24 0x80 # 25degC
-./set 0x25 0xc0 # 27degC
-./set 0x26 0xe0 # 29degC
+./set 0x25 0x40 # 27degC
+./set 0x26 0x20 # 29degC
 
 # Fill high temperatures
-for TEMP in `seq 30 $TEMP_STEP $TEMP_MAX`; do
+for TEMP in `seq 31 $TEMP_STEP $TEMP_MAX`; do
     lut_address $TEMP
     ./set $LUT_ADDR 0x00
 done
