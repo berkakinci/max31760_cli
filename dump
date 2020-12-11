@@ -1,2 +1,3 @@
 #!/bin/bash
-i2cdump -y -r 0x00-0x5f 1 0x50
+source .config.sh
+i2cdump -y -r 0x00-0x5f $I2C_BUS $I2C_ADDRESS
