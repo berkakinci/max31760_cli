@@ -1,0 +1,11 @@
+#!/bin/bash
+
+while :; do
+    {
+	date
+	./temp
+	./pwm
+    } | tr "\n" "\0" | sed "s/\x0/\t\t/g"
+    echo ""
+    sleep 1
+done

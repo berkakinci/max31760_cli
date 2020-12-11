@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#### Config
+./set 0x00 0x88 # CR1
+./set 0x01 0x10 # CR2
+./set 0x02 0xb0 # CR3
+./set 0x03 0xff # FFDC (Default)
+./set 0x04 0xef # MASK
+./set 0x05 0x18 # IFR (Default)
+./set 0x06 40   # RHSH degC
+./set 0x07 00   # RHSL
+./set 0x08 50   # LOTSH degC
+./set 0x09 00   # LOTSL
+./set 0x0a 40   # ROTSH degC
+./set 0x0b 00   # ROTSL
+./set 0x0c 50   # LHSH degC
+./set 0x0d 00   # LHSL
+./set 0x0e 0xff # TCTH (Default)
+./set 0x0f 0xff # TCTL (Default)
+
+# User EEPROM
+./set 0x10 0xba # Signature
+./set 0x11 0xa0 # Type: Auto (LUT) Control
+./set 0x12 0x00 # Version
+./set 0x13 0x00
+./set 0x14 0x00
+./set 0x15 0x00
+./set 0x16 0x00
+./set 0x17 0x00
+
+### LUT
+TEMP_BASE=17 # degC
+TEMP_STEP=2  # degC
+TEMP_MAX=111 # degC
+LUT_ADDR=LUT_BASE # Global for address manipulated below
+function lut_address () {
+    LUT_BASE=0x20
+    LUT_OFFSET=$(( ( TEMP - TEMP_BASE ) / TEMP_STEP ))
+    LUT_ADDR=$(( LUT_BASE + LUT_OFFSET ))
+    LUT_ADDR=`printf "0x%02x" $LUT_ADDR`
+    return
+}
+
+# Fill low temperatures
+for TEMP in `seq $TEMP_BASE $TEMP_STEP 20`; do
+    lut_address $TEMP
+    ./set $LUT_ADDR 0xff
+done
+
+# Manually managing transition for now.
+./set 0x22 0x20 # 21degC
+./set 0x23 0x40 # 23degC
+./set 0x24 0x80 # 25degC
+./set 0x25 0xc0 # 27degC
+./set 0x26 0xe0 # 29degC
+
+# Fill high temperatures
+for TEMP in `seq 30 $TEMP_STEP $TEMP_MAX`; do
+    lut_address $TEMP
+    ./set $LUT_ADDR 0x00
+done
+
+### Operational
+# Set Duty Cycle Note
+./set 0x50 0x00 # PWMR

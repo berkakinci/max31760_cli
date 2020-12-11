@@ -1,0 +1,11 @@
+#!/bin/bash
+
+PWMV=`./get 0x51`
+
+if [[ PWMV == '0xff' ]]; then
+    PWM="100.00"
+else
+    PWM=`bc <<< "scale=2; $(( PWMV )) / 256 * 100"`
+fi
+
+echo -e "PWM:\t$PWM\t%"

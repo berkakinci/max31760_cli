@@ -1,0 +1,2 @@
+#!/bin/bash
+i2cdump -y -r 0x00-0x5f 1 0x50
