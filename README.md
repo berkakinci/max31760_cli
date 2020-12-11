@@ -1,3 +1,4 @@
+# MAX31760 Command Line Interface
 # max31760_cli
 Shortcuts to Linux i2c-tools on a MAX31760 Fan Controller
 
