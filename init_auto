@@ -34,6 +34,7 @@ TEMP_STEP=2  # degC
 TEMP_MAX=111 # degC
 LUT_ADDR=LUT_BASE # Global for address manipulated below
 function lut_address () {
+    local TEMP=$1
     LUT_BASE=0x20
     LUT_OFFSET=$(( ( TEMP - TEMP_BASE ) / TEMP_STEP ))
     LUT_ADDR=$(( LUT_BASE + LUT_OFFSET ))
@@ -42,24 +43,29 @@ function lut_address () {
 }
 
 # Fill low temperatures
-for TEMP in `seq $TEMP_BASE $TEMP_STEP 20`; do
+for TEMP in `seq $TEMP_BASE $TEMP_STEP 30`; do
     lut_address $TEMP
     ./set $LUT_ADDR 0xff
 done
 
 # Manually managing transition for now.
-./set 0x22 0xe0 # 21degC
-./set 0x23 0xc0 # 23degC
-./set 0x24 0x80 # 25degC
-./set 0x25 0x40 # 27degC
-./set 0x26 0x20 # 29degC
+lut_address 31 # degC
+./set $LUT_ADDR 0x80
+lut_address 33 # degC
+./set $LUT_ADDR 0x40
+lut_address 35 # degC
+./set $LUT_ADDR 0x20
+lut_address 37 # degC
+./set $LUT_ADDR 0x10
+lut_address 39 # degC
+./set $LUT_ADDR 0x08
 
 # Fill high temperatures
-for TEMP in `seq 31 $TEMP_STEP $TEMP_MAX`; do
+for TEMP in `seq 41 $TEMP_STEP $TEMP_MAX`; do
     lut_address $TEMP
     ./set $LUT_ADDR 0x00
 done
 
 ### Operational
-# Set Duty Cycle Note
+# Set Duty Cycle
 ./set 0x50 0x00 # PWMR
