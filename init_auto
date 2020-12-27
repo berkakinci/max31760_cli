@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Temperature LUT Properties
+TEMP_TRANSITION_START=32 # degC
+TEMP_TRANSITION_END=40   # degC
+PWM_MAX=100              # %
+
 #### Config
 ./set 0x00 0x88 # CR1
 ./set 0x01 0x10 # CR2
@@ -21,7 +26,7 @@
 # User EEPROM
 ./set 0x10 0xba # Signature
 ./set 0x11 0xa0 # Type: Auto (LUT) Control
-./set 0x12 0x00 # Version
+./set 0x12 0x01 # Version
 ./set 0x13 0x00
 ./set 0x14 0x00
 ./set 0x15 0x00
@@ -33,6 +38,7 @@ TEMP_BASE=17 # degC
 TEMP_STEP=2  # degC
 TEMP_MAX=111 # degC
 LUT_ADDR=LUT_BASE # Global for address manipulated below
+PWM_VAL=0x00      # Global for PWM register values manipulated below
 function lut_address () {
     local TEMP=$1
     LUT_BASE=0x20
@@ -41,29 +47,36 @@ function lut_address () {
     LUT_ADDR=`printf "0x%02x" $LUT_ADDR`
     return
 }
+function pwm_value () {
+    local PWM=$1
+    PWMR=`bc <<< "scale=2; $PWM * 256 / 100"`
+    PWMR=`printf "%.0f" $PWMR`   # Rounds here.
+    PWMR=`printf "0x%02x" $PWMR` # Hex here (for show).
+    if (( PWMR > 0xff )); then
+       PWMR=0xff
+    fi
+    PWM_VAL=$PWMR
+    return
+}
 
-# Fill low temperatures
-for TEMP in `seq $TEMP_BASE $TEMP_STEP 30`; do
-    lut_address $TEMP
-    ./set $LUT_ADDR 0xff
-done
+# Fill LUT
+PWM=$PWM_MAX
+for TEMP in `seq $TEMP_BASE $TEMP_STEP $TEMP_MAX`; do
+    if (( TEMP < TEMP_TRANSITION_START )); then
+	# Fill for low temperatures
+	PWM=$PWM_MAX
+    elif (( TEMP < TEMP_TRANSITION_END )); then
+	# Fill for transition region
+	PWM=`bc <<< "scale=2; $PWM / 2"`
+    else # TEMP >= TEMP_TRANSITION_END
+	# Fill for high temperatures
+	PWM=0
+    fi
 
-# Manually managing transition for now.
-lut_address 31 # degC
-./set $LUT_ADDR 0x80
-lut_address 33 # degC
-./set $LUT_ADDR 0x40
-lut_address 35 # degC
-./set $LUT_ADDR 0x20
-lut_address 37 # degC
-./set $LUT_ADDR 0x10
-lut_address 39 # degC
-./set $LUT_ADDR 0x08
-
-# Fill high temperatures
-for TEMP in `seq 41 $TEMP_STEP $TEMP_MAX`; do
-    lut_address $TEMP
-    ./set $LUT_ADDR 0x00
+    echo -e "LUT Fill: ${TEMP}degC\t${PWM}% Heat"
+    lut_address $TEMP # Sets $LUT_ADDR global
+    pwm_value $PWM    # Sets $PWM_VAL  global
+    # ./set $LUT_ADDR $PWM_VAL
 done
 
 ### Operational
