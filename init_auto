@@ -76,7 +76,7 @@ for TEMP in `seq $TEMP_BASE $TEMP_STEP $TEMP_MAX`; do
     echo -e "LUT Fill: ${TEMP}degC\t${PWM}% Heat"
     lut_address $TEMP # Sets $LUT_ADDR global
     pwm_value $PWM    # Sets $PWM_VAL  global
-    # ./set $LUT_ADDR $PWM_VAL
+    ./set $LUT_ADDR $PWM_VAL
 done
 
 ### Operational
