@@ -10,9 +10,9 @@ TEMP_L=`bc <<< "scale=3; $(( LTH )) + ($(( LTL )) / 256)"`
 echo -e "Local:\t$TEMP_L\tdegC"
 
 if (( ! REMOTE_FAULT )); then 
-    TEMP_R=`bc <<< "scale=3; $(( RTH )) + ($(( RTL )) / 256)"`
     RTH=`./get 0x56`
     RTL=`./get 0x57`
+    TEMP_R=`bc <<< "scale=3; $(( RTH )) + ($(( RTL )) / 256)"`
 
     echo -e "Remote:\t$TEMP_R\tdegC"
 fi
