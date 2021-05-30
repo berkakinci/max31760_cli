@@ -1,0 +1,38 @@
+#!/bin/bash
+
+SR=`./get 0x5a`
+SR_PC=$((     (SR & 0x80) != 0 ))
+SR_RDFA=$((   (SR & 0x40) != 0 ))
+SR_LHA=$((    (SR & 0x20) != 0 ))
+SR_LOTA=$((   (SR & 0x10) != 0 ))
+SR_RHA=$((    (SR & 0x08) != 0 ))
+SR_ROTA=$((   (SR & 0x04) != 0 ))
+SR_TACH2A=$(( (SR & 0x02) != 0 ))
+SR_TACH1A=$(( (SR & 0x01) != 0 ))
+
+echo -e "Status:\t$SR"
+
+if (( SR_PC )); then 
+    echo -e "\tProgram Corrupt"
+fi
+if (( SR_RDFA )); then 
+    echo -e "\tRemote Diote Fault Alarm"
+fi
+if (( SR_LHA )); then 
+    echo -e "\tLocal Temperature High Alarm"
+fi
+if (( SR_LOTA )); then 
+    echo -e "\tLocal Overtemperature Alarm"
+fi
+if (( SR_RHA )); then 
+    echo -e "\tRemote Temperature High Alarm"
+fi
+if (( SR_ROTA )); then 
+    echo -e "\tRemote Overtemperature Alarm"
+fi
+if (( SR_TACH2A )); then 
+    echo -e "\tTach2 Alarm"
+fi
+if (( SR_TACH1A )); then 
+    echo -e "\tTach1 Alarm"
+fi
