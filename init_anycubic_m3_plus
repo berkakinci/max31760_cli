@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Temperature LUT Properties
+TEMP_TRANSITION_START=28 # degC
+TEMP_TRANSITION_END=36   # degC
+PWM_MAX=100              # %
+
+#### Config
+./set 0x00 0x89 # CR1 - Remote LUT
+./set 0x01 0x10 # CR2
+./set 0x02 0xb0 # CR3
+./set 0x03 0xff # FFDC (Default)
+./set 0x04 0xeb # MASK
+./set 0x05 0x18 # IFR (Default)
+./set 0x06 38   # RHSH degC
+./set 0x07 00   # RHSL
+./set 0x08 60   # LOTSH degC
+./set 0x09 00   # LOTSL
+./set 0x0a 40   # ROTSH degC
+./set 0x0b 00   # ROTSL
+./set 0x0c 50   # LHSH degC
+./set 0x0d 00   # LHSL
+./set 0x0e 0xff # TCTH (Default)
+./set 0x0f 0xff # TCTL (Default)
+
+# User EEPROM
+./set 0x10 0xba # Signature
+./set 0x11 0xa2 # Type: Auto (LUT) Control; w/ Remote Sense
+./set 0x12 0x00 # Version
+./set 0x13 0x00
+./set 0x14 0x00
+./set 0x15 0x00
+./set 0x16 0x00
+./set 0x17 0x00
+
+### LUT
+TEMP_BASE=17 # degC
+TEMP_STEP=2  # degC
+TEMP_MAX=111 # degC
+LUT_ADDR=LUT_BASE # Global for address manipulated below
+PWM_VAL=0x00      # Global for PWM register values manipulated below
+function lut_address () {
+    local TEMP=$1
+    LUT_BASE=0x20
+    LUT_OFFSET=$(( ( TEMP - TEMP_BASE ) / TEMP_STEP ))
+    LUT_ADDR=$(( LUT_BASE + LUT_OFFSET ))
+    LUT_ADDR=`printf "0x%02x" $LUT_ADDR`
+    return
+}
+function pwm_value () {
+    local PWM=$1
+    PWMR=`bc <<< "scale=2; $PWM * 256 / 100"`
+    PWMR=`printf "%.0f" $PWMR`   # Rounds here.
+    PWMR=`printf "0x%02x" $PWMR` # Hex here (for show).
+    if (( PWMR > 0xff )); then
+       PWMR=0xff
+    fi
+    PWM_VAL=$PWMR
+    return
+}
+
+# Fill LUT
+PWM=$PWM_MAX
+for TEMP in `seq $TEMP_BASE $TEMP_STEP $TEMP_MAX`; do
+    if (( TEMP < TEMP_TRANSITION_START )); then
+	# Fill for low temperatures
+	PWM=$PWM_MAX
+    elif (( TEMP < TEMP_TRANSITION_END )); then
+	# Fill for transition region
+	PWM=`bc <<< "scale=2; $PWM / 2"`
+    else # TEMP >= TEMP_TRANSITION_END
+	# Fill for high temperatures
+	PWM=0
+    fi
+
+    echo -e "LUT Fill: ${TEMP}degC\t${PWM}% Heat"
+    lut_address $TEMP # Sets $LUT_ADDR global
+    pwm_value $PWM    # Sets $PWM_VAL  global
+    ./set $LUT_ADDR $PWM_VAL
+done
+
+### Operational
+# Set Duty Cycle
+./set 0x50 0x00 # PWMR
